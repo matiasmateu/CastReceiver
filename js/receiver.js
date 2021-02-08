@@ -32,8 +32,8 @@ const CONTENT_URL = 'https://storage.googleapis.com/cpe-sample-media/content.jso
 
 const context = cast.framework.CastReceiverContext.getInstance();
 const playerManager = context.getPlayerManager();
-
-
+const metadata = { empty: {} };
+const CHANNEL_CONTROL = 'urn:x-cast:com.twentyfouri.player.control';
 const LOG_RECEIVER_TAG = 'Receiver';
 
 /**
@@ -47,12 +47,12 @@ const castDebugLogger = cast.debug.CastDebugLogger.getInstance();
  * Uncomment below line to enable debug logger and show a 'DEBUG MODE' tag at
  * top left corner.
  */
-// castDebugLogger.setEnabled(true);
+ castDebugLogger.setEnabled(true);
 
 /**
  * Uncomment below line to show debug overlay.
  */
-// castDebugLogger.showDebugLogs(true);
+ castDebugLogger.showDebugLogs(true);
 
 /**
  * Set verbosity level for Core events.
@@ -160,6 +160,28 @@ function fetchMediaByEntity(entity) {
   });
 }
 
+sendToControlChannel = (message, receiverId) => {
+  cast.framework.CastReceiverContext.getInstance().sendCustomMessage(CHANNEL_CONTROL, receiverId, {
+      message
+  });
+}
+
+const crcontext = cast.framework.CastReceiverContext.getInstance();
+crcontext.addCustomMessageListener(CHANNEL_CONTROL, (customEvent) => {
+  const { message: { action } } = customEvent.data;
+  castDebugLogger.debug(LOG_RECEIVER_TAG,
+    `CHANNEL_CONTROL received: ${JSON.stringify(customEvent)}`);
+  switch (action) {
+  case 'REQUEST_METADATA':
+      if (metadata) {
+          this.sendToControlChannel(metadata, customEvent.senderId);
+      }
+      break;
+  default:
+      break;
+  }
+});
+
 
 /**
  * Intercept the LOAD request to be able to read in a contentId and get data.
@@ -168,6 +190,12 @@ playerManager.setMessageInterceptor(
   cast.framework.messages.MessageType.LOAD, loadRequestData => {
     castDebugLogger.debug(LOG_RECEIVER_TAG,
       `LOAD interceptor loadRequestData: ${JSON.stringify(loadRequestData)}`);
+
+    const { metadata, customData } = loadRequestData.media;
+    castDebugLogger.debug(LOG_RECEIVER_TAG,
+      `LOAD interceptor metaData: ${JSON.stringify(metadata)}`);
+    castDebugLogger.debug(LOG_RECEIVER_TAG,
+      `LOAD interceptor customData: ${JSON.stringify(customData)}`);
     if (!loadRequestData || !loadRequestData.media) {
       const error = new cast.framework.messages.ErrorData(
         cast.framework.messages.ErrorType.LOAD_FAILED);
