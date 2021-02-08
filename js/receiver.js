@@ -160,7 +160,7 @@ function fetchMediaByEntity(entity) {
   });
 }
 
-sendToControlChannel = (message, receiverId) => {
+function sendToControlChannel (message, receiverId) {
   cast.framework.CastReceiverContext.getInstance().sendCustomMessage(CHANNEL_CONTROL, receiverId, {
       message
   });
@@ -174,7 +174,7 @@ crcontext.addCustomMessageListener(CHANNEL_CONTROL, (customEvent) => {
   switch (action) {
   case 'REQUEST_METADATA':
       if (metadata) {
-          this.sendToControlChannel(metadata, customEvent.senderId);
+          sendToControlChannel(metadata, customEvent.senderId);
       }
       break;
   default:
